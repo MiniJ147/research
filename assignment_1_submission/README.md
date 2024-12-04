@@ -28,9 +28,10 @@ To keep track of the 10 highest primes I use a max heap which stores a max of 10
 ### Proof
 
 $$Thread_{work}(i) \approx 12.5\%$$  
-$$Where \sum_{i=1}^8{Thread_{work}(i)} = 100\%$$  
-$$Time_{avg} \approx 75sec$$
-$$Where\;the\;work\;of,\\ Thread_{single} \approx Time_{avg} * Thread_{total} = 75 * 8 = 600sec$$  
+$$Where \sum_{i=1}^8{Thread_{work}(i)} = 100\%$$    
+$$Time_{avg} \approx 75sec$$  
+$$Where\;the\;work\;of,$$  
+$$Thread_{single} \approx Time_{avg} * Thread_{total} = 75 * 8 = 600sec$$  
 **Thus, we can see an 8x increase in performance and an even distribution of workload among threads** 
 
 
