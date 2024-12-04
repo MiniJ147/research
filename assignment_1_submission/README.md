@@ -39,7 +39,7 @@ $$Where\;the\;work\;of,\\ Thread_{single} \approx Time_{avg} * Thread_{total} = 
 One major bottleneck is the prime counter algorithm. This brute force approach leads to a lot of repeated work and research into a more effective algorithm would be beneficial. One algorithm I dived into was Sieve of Eratosthenes, however this requires a shared memory pool among threads. Initially this implementation seemed overly complex, but upon reflection it seems rather trivial. Thus, if a more efficient solution is required it would be beneficial to implement this algorithm with the added cost of complexity and memory usage.
 
 **Prime-Finder Runtime Improvement**   
-$$ O_{bruteforce}(N\sqrt{N}) > O_{optimized}(N\log{\log{N}})$$
+$$O_{bruteforce}(N\sqrt{N}) > O_{optimized}(N\log{\log{N}})$$
 
 ## Dining Philosophers
 
