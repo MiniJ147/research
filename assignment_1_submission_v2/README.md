@@ -26,15 +26,15 @@ Previous I used a brute force attempt with
 $$O(N\sqrt{N})$$  
 which we will see provided a massive improvement in efficiency.  
 
-To parallelize Sieve of Eratosthenes I decided to have prime tracking thread called sieve, and 7 other worker threads.  
+To parallelize Sieve of Eratosthenes I decided to have a prime tracking thread called sieve, and 7 other worker threads.  
 The job of the worker threads was to evenly split up the workload of calculating the products of whatever prime the algorithm is on.  
 The job of the sieve thread is to iterate through the array and track the next available prime.  
 
-The reason for this implementation is that Sieve of Eratosthenes is a sequential algorithm, meaning that the results of k+1 depend on the calculation of k. Therefore, if we parallelize the algorithm itself we would lose the data integrity of the boolean array.  
+The reason for this implementation is that Sieve of Eratosthenes is a sequential algorithm, meaning that the results of k depend on the calculation of k-1. Therefore, if we parallelize the algorithm itself we would lose the data integrity of the boolean array.  
 
 To get around this I decided to parallelize the multiple calculation part of the algorithm (worker threads) and leave the next prime checker sequential (Sieve thread). This keeps the data integrity of the boolean array since k-1 will always be fully calculated.  
 
-Furthermore, what allowed me to parallelize the multiple calculations is the fact that it does not matter which order it is completed in, meaning, we could batch it among the threads.  
+Furthermore, what allowed me to parallelize the multiple calculations is the fact that order doesn't matter, meaning, we could batch it among the threads.  
 
 To ensure that the threads were synchronized I used a barrier technique.  
 
@@ -82,9 +82,6 @@ This is an 76x approvement over my last submission.
 $$Thread_{work}(T) \approx 14.3\%$$  
 $$Where \sum_{T=1}^8{Thread_{work}(T)} \approx 100 \%$$  
 Thus, displaying an even work load among threads.  
-
-**Proving Efficiency**  
-$$Thread_{single} \approx Time_{avg} * Thread_{total} = 1 * 7 = 7sec$$
 
 ## Dining Philosophers 
 
