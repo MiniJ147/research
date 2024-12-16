@@ -2,99 +2,72 @@ package main
 
 import (
 	"fmt"
-	"sort"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
 const PRIME_MAX = 100000000 // 10^8
 // const PRIME_MAX = 10000
 const THREAD_CNT = 8
-const THREAD_BATCH_SIZE = 50 
+const THREAD_WORKER_CNT = THREAD_CNT - 1
+const BATCH_SIZE = 5
 
 var isPrime = [PRIME_MAX + 1]bool{}
-var primeGlobalCnt int32 = 0
-var primeGlobalSum int64 = 0
+var primeGlobal int64 = 0
+var jobWaiter sync.WaitGroup
 
-func primePrintTop10() {
-	i := PRIME_MAX
-	cnt := 0
-	primes := []int{}
-
-	for cnt < 10 {
-		if isPrime[i] {
-			primes = append(primes, i)
-			cnt += 1
+func sieve() {
+	var p int64
+	for p = 2; p*p <= PRIME_MAX; p++ {
+		if isPrime[p] {
+			// work
+			primeGlobal = p
+			jobWaiter.Add(THREAD_WORKER_CNT)
+			jobWaiter.Wait()
 		}
-		i -= 1
 	}
 
-	sort.Ints(primes)
-	fmt.Println(primes)
+	primeGlobal = PRIME_MAX + 1 // set the quit flag
 }
 
-func primeValidate(n int) bool {
-	if n < 2 {
-		return false
-	}
+// take some bound and calcualte for them
+func worker(id int64) {
+	for primeGlobal <= PRIME_MAX {
+		primeLocal := primeGlobal
 
-	for i := 2; i*i <= n; i++ {
-		if n%i == 0 || !isPrime[n] {
-			return false
-		}
-	}
+		start := primeLocal * primeLocal
+		stagger := id * primeLocal
 
-	for i := n * 2; i <= PRIME_MAX; i += n {
-		isPrime[i] = false
-	}
-
-	return true
-}
-
-func worker(start int, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	primeCurr := start
-	var primeLocalCnt int32 = 0
-	var primeLocalSum int64 = 0
-	jobCnt := 0
-
-	for primeCurr <= PRIME_MAX {
-		for i := primeCurr; i < primeCurr+THREAD_BATCH_SIZE && i <= PRIME_MAX; i++ {
-			jobCnt++
-
-			if primeValidate(i) {
-				// fmt.Printf("thread %d found %d as prime\n", start, i)
-				primeLocalCnt += 1
-				primeLocalSum += int64(i)
-			}
+		for i := start + stagger; i <= PRIME_MAX; i += THREAD_WORKER_CNT * primeLocal {
+			// fmt.Printf("worker: %v evluating: %v\n", id, i)
+			isPrime[i] = false
 		}
 
-		// fmt.Printf("thread: %d, start: %d, end: %d, primes found: %d\n", start, primeCurr, primeCurr+THREAD_BATCH_SIZE, primeLocalCnt)
-		primeCurr += (THREAD_BATCH_SIZE * THREAD_CNT)
+		jobWaiter.Done()
+		for primeLocal == primeGlobal {
+		}
 	}
-
-	fmt.Printf("thread: %d, found: %d primes, did: %d jobs. Local sum: %d\n", start, primeLocalCnt, jobCnt, primeLocalSum)
-	atomic.AddInt32(&primeGlobalCnt, primeLocalCnt)
-	atomic.AddInt64(&primeGlobalSum, primeLocalSum)
+	fmt.Println("thread killed", id)
 }
 
 func main() {
-	for i := 0; i < PRIME_MAX; i++ {
+	for i := 0; i <= PRIME_MAX; i++ {
 		isPrime[i] = true
 	}
 
-	wg := sync.WaitGroup{}
-	wg.Add(THREAD_CNT)
-
 	start := time.Now()
-
-	for i := 0; i < THREAD_CNT; i++ {
-		go worker(i*THREAD_BATCH_SIZE, &wg)
+	for i := 0; i < THREAD_WORKER_CNT; i++ {
+		go worker(int64(i))
 	}
-	wg.Wait()
+	sieve()
+	totalTime := time.Since(start)
 
-	fmt.Printf("Total Time: %v | Prime Count: %v | Prime Sum: %v | greatest 10", time.Since(start), primeGlobalCnt, primeGlobalSum)
-	primePrintTop10()
+	total := 0
+	for i := 2; i <= PRIME_MAX; i++ {
+		if isPrime[i] {
+			// fmt.Printf("%v ", i)
+			total += 1
+		}
+	}
+	fmt.Println("Hello world!", total, totalTime)
 }
