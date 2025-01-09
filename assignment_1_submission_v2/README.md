@@ -7,7 +7,7 @@
 4. 1.4 - 1.6 Textbook Solutions
 
 ## How to Run
-Required Go Version 1.23.3  
+Required Go Version >= 1.23.3  
 
 **Prime Finder**
 ```
@@ -19,63 +19,82 @@ go run prime-finder.go
 go run dining-philosophers.go
 ```
 ## Prime Counter 
-**program breakdown**  
-In this approach I decided to parallelize the Sieve of Eratosthenes algorithm.  
-$$O(N*loglogN);N=10^8$$  
-Previous I used a brute force attempt with   
-$$O(N\sqrt{N})$$  
-which we will see provided a massive improvement in efficiency.  
+**Runtime**  
+In this approach I decided to use a parallelized Sieve of Eratosthenes.  
+This program runs in  
+$$O(N*\log({log{N}}))$$  
+This approach is significantly faster than my brute force attempt which took previously  
+$$O(N*\sqrt{N})$$  
 
-To parallelize Sieve of Eratosthenes I decided to have a prime tracking thread called sieve, and 7 other worker threads.  
-The job of the worker threads was to evenly split up the workload of calculating the products of whatever prime the algorithm is on.  
-The job of the sieve thread is to iterate through the array and track the next available prime.  
+**Thought Process**  
+To parallelize Sieve of Eratosthenes I decided to batch the work evenly among all eight threads. Each thread was responsible for preforming calculations based off the array state.  
 
-The reason for this implementation is that Sieve of Eratosthenes is a sequential algorithm, meaning that the results of k depend on the calculation of k-1. Therefore, if we parallelize the algorithm itself we would lose the data integrity of the boolean array.  
+One major improvement was to remove all synchronization techniques when performing work.  
 
-To get around this I decided to parallelize the multiple calculation part of the algorithm (worker threads) and leave the next prime checker sequential (Sieve thread). This keeps the data integrity of the boolean array since k-1 will always be fully calculated.  
+ Previously I used a global mutex lock with brute force calculations preformed on each thread (Coarse-grained synchronization attempt). This led to a run time of around 53 seconds to a minute on my machine.  
 
-Furthermore, what allowed me to parallelize the multiple calculations is the fact that order doesn't matter, meaning, we could batch it among the threads.  
+On my next attempt I tried to parallelized Sieve of Eratosthenes algorithm, but with one major pitfall (leaving the algorithm process sequential while only distributing the product calculations). This led to the runtimes betting effectively the same as the single threaded version. This was due to the unnecessary synchronization cost.  
 
-To ensure that the threads were synchronized I used a barrier technique.  
+While the last attempt was significantly better than the brute force (due to the more optimized algorithm) I still failed to utilize the power of parallelism. To fix this one key observation had to be made "a little bit of redundant work will take far less time to execute than the barriers" my last solution used.  
 
-**algorithm run down**
+This brings me to the current implementation which maximizes the parallelism of this algorithm.  
+
+**Program Breakdown**  
+For this solution I decided to batch the threads and allow them to work on individual sections of the array, providing a lock-free algorithm.  
 ```
-KILL = -1
-currPrime = 0
-
-Sieve thread():
-    for num in 10^8:
-        if isPrime[num]:
-            currPrime = num
-
-            barrier.add(worker_threads)
-            barrier.wait() // wait until all threads finished
-
-    currPrime = KILL
-
-Worker thread():
-    while currPrime != KILL:
-        localPrime = currPrime
-
-        for num in batch:
-            isPrime[num] = false
-
-        barrier.done(1) 
-        wait_until(localPrime!=currPrime) // detect new prime 
+thread():
+    for batch:
+        for ele in batch:
+            doPrimeCalc(ele) #do prime executes the sieve of eratosthenes algorithm
 ```
 
-The barrier ensures that the calculation is finished before we can move onto the next prime.  
+Once finished the threads will proceed to wait until all other threads finish. From there they will begin to go over their sections of the array again and proceed to count and sum the primes they encounter in local variables. After this process has completed they will atomically add to a shared variable to synchronize results.  
 
-To detect if we have received a new prime we can compare the global prime (current) with our local prime (previous). If they are different we know we have a new prime to calculate.  
+```
+thread_with_sum_cnt():
+    for batch:
+        for ele in batch
+            doPrimeCalc(ele)
+    
+    spin(until other threads finish doPrimeCalc operations)
 
-The batch is necessary to ensure each thread is doing unique work (no duplicates). This is done through an interval technique where  
-Thread 1: [1,100)  
-Thread 2: [100,200)  
-and so on... 
+    for batch:
+        for ele in batch:
+            if prime: 
+                localSum+=ele; localCnt+=1
 
-With this approach the work is completed in around 1 second on my machine. With the lowest value taking less than a second.  
+    atomicAdd(globalSum,localSum)
+    atomicAdd(globalCnt,localCnt)
+```  
 
-This is an 76x approvement over my last submission.
+This provided a better runtime then doing these calculations on the main thread once the work threads have finished (like in previous solutions). This allows all parts of this program to be parallelized.  
+
+The final change to the algorithm to parallelize would be to count the top 10 primes. This is a simple addition to the algorithm: checking if it is the last thread (meaning the array is in its final state) then count primes.
+
+```
+thread_with_top_sum_cnt():
+    for batch:
+        for ele in batch:
+            doPrimeCalc(ele)
+
+    spin()
+    if lastThread:
+        grabTopPrimes()
+
+    for batch:
+        for ele in batch:
+            if prime:
+                localSum+=ele; localCnt+=1
+
+    atomicAdd(globalSum,localSum)
+    atomicAdd(globalCnt,localCnt)
+```
+
+**Conclusion**   
+Thus, the algorithm is fully parallelized. The only optimization would be to prevent the spin before the sum and count, but I don't think that is possible without jeopardizing the data's integrity.  
+
+The new solution on my machine runs on average of 800ms with the lowest being around 700m;while the single threaded implementation runs at around 1.3 seconds. Therefore providing roughly a 50% improvement in runtime.   
+
 
 ### Proof
 **Proving Workload**  
