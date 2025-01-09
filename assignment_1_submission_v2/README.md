@@ -93,17 +93,42 @@ thread_with_top_sum_cnt():
 **Conclusion**   
 Thus, the algorithm is fully parallelized. The only optimization would be to prevent the spin before the sum and count, but I don't think that is possible without jeopardizing the data's integrity.  
 
-The new solution on my machine runs on average of 800ms with the lowest being around 700m;while the single threaded implementation runs at around 1.3 seconds. Therefore providing roughly a 50% improvement in runtime.   
+The new solution on my machine runs on average of 800ms with the lowest being around 700m; while the single threaded implementation runs at around 1.3 seconds. Therefore providing roughly a 50% improvement in runtime.   
 
 
 ### Proof
 **Proving Workload**  
-$$Thread_{work}(T) \approx 14.3\%$$  
-$$Where \sum_{T=1}^8{Thread_{work}(T)} \approx 100 \%$$  
+$$Thread_{work}(T) = 13.75\%$$  
+$$Where \sum_{T=1}^8{Thread_{work}(T)} = 100 \%$$  
 Thus, displaying an even work load among threads.  
 
 ## Dining Philosophers 
 
+**Solution**  
+To ensure the program was **dead-lock free** I used the resource hierarchy approach. This makes philosophers pick up the lowest numbered fork first. This breaks the cyclic pattern posed in the problem; thus, eliminating the possibility of a deadlock. 
+
+```
+philosopher(id):
+    left = (id+PHILO_NUM-1) % PHILO_NUM
+    right = id #this is due to the layout of the lock array (see code for why)
+
+    firstFork = min(left,right)
+    secondFork = max(left,right)
+
+    forks[firstFork].grab()
+    forks[secondFork].grab()
+```  
+
+To provide **starvation-freedom** I implemented a queue lock, modeled after chapter 7 array based queue, at the fork level.  
+
+Thus when a philosopher attempts to access a fork it will then sit in a queue lock waiting for its turn. This prevents one thread from starving out the others and allows all threads to eventually eat.  
+
+One important note is to not allow philosophers to queue the second fork if it doesn't have access to the first fork. This is because it brings back the cyclic nature of the problem thus invalidating our resource hierarchy.  
+
+Why?  
+Say all threads besides one win the lower number fork. The one thread which didn't win the lower fork goes and enqueues themselves into the higher fork and wins the queue (getting the lock). All threads would then be in a cycle thus a deadlock. So, we must ensure that we only enqueue one fork at a time (lower then the higher after acquiring the lower one).  
+
+This also allows other threads to work by preventing threads from holding the lock when they aren't able to use the resource (waiting for the lower fork, but holding the upper fork).  
 
 ## 1.4 Solution 
 
