@@ -26,13 +26,16 @@ func work(id int, wg *sync.WaitGroup) {
 	for i := (BATCH_SIZE * id); i <= PRIME_MAX; i += (BATCH_SIZE * THREAD_CNT) {
 		for j := 0; j <= BATCH_SIZE && j+i <= PRIME_MAX; j++ {
 			k := i + j
-			if !nonPrime[k] {
-				for z := k * k; z <= PRIME_MAX; z += k {
-					nonPrime[z] = true
-				}
-			}
 
 			jobCnt++
+			if nonPrime[k] {
+				continue
+			}
+
+			for z := k * k; z <= PRIME_MAX; z += k {
+				nonPrime[z] = true
+			}
+
 		}
 	}
 
@@ -41,10 +44,12 @@ func work(id int, wg *sync.WaitGroup) {
 	// if it is the last thread to be modifying the nonPrime Array should begin the grab
 	if atomic.AddInt32(&workDone, 1) == THREAD_CNT {
 		for i, j := PRIME_MAX, 9; i >= 0 && j >= 0; i-- {
-			if !nonPrime[i] {
-				topPrimes[j] = i
-				j--
+			if nonPrime[i] {
+				continue
 			}
+
+			topPrimes[j] = i
+			j--
 		}
 	}
 
@@ -57,10 +62,12 @@ func work(id int, wg *sync.WaitGroup) {
 	var cnt int64 = 0
 	for i := (BATCH_SIZE_CNT * id); i <= PRIME_MAX; i += (BATCH_SIZE_CNT * THREAD_CNT) {
 		for j := 0; j <= BATCH_SIZE_CNT && j+i <= PRIME_MAX; j++ {
-			if !nonPrime[i+j] {
-				cnt++
-				sum += int64(i + j)
+			if nonPrime[i+j] {
+				continue
 			}
+
+			cnt++
+			sum += int64(i + j)
 		}
 	}
 
