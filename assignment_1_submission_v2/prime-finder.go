@@ -8,7 +8,7 @@ import (
 )
 
 const PRIME_MAX = 100000000 // 10^8
-const THREAD_CNT = 8
+const THREAD_CNT = 8 
 const BATCH_SIZE = 10
 const BATCH_SIZE_CNT = 50
 
