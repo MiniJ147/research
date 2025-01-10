@@ -130,7 +130,19 @@ Say all threads besides one win the lower number fork. The one thread which didn
 
 This also allows other threads to work by preventing threads from holding the lock when they aren't able to use the resource (waiting for the lower fork, but holding the upper fork).  
 
+**Conclusion**  
+Since, the queue locks are implemented at the fork level utilizing the resource hierarchy approach we provide dead-lock freedom, starvation-freedom, and effective parallelism (no one global lock)
+
 ## 1.4 Solution 
+**Light Off**  
+The solution to this problem involves marker one of prisoners as a (consumer thread) and the rest as producer threads.
+
+When the producer thread enters the room they should flip the light switch on {if it is off and they haven't turned the light on before}.
+
+When a consumer enters a room if the light switch is on they should flip it off and add to their mental count. If it equals P-1 they should declare free.  
+
+This works because this guarantees that the consumer will count only when new producers enter, since there is no repeated work. Additionally, we are guaranteed to go at least N times, so since there is no limit we are guaranteed to eventually visit the rooms at least once.
+
 
 
 ## 1.5 Solution 
