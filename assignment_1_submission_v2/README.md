@@ -169,17 +169,25 @@ $$Parallel=85\%$$
 $$Sequential=15\%$$  
 $$MemoryAccess=20\%$$  
 $$CacheMiss=\frac{N}{N+10}$$  
-Sequential:  
+
+Sequential  
 $$Freq_{mem}=0.20$$  
 $$Cost_{mem}=1$$  
+  
+Parallel:
+$$Freq_{mem}=0.20$$  
+$$Cost_{mem}(N)=3N+11$$  
+  
 With some other given information we can reduce the following  
 Both sequential and parallel cost:  
 $$Avg = Freq_{mem}*Cost_{mem} + Freq_{other}*Cost_{seq}$$  
-For Sequential:  
+
+For Sequential  
 $$S_{avg}= 0.20 * 14 + 0.8 * 1 = 3.6$$  
 $$S_{total} = Freq*Avg$$  
 $$S_{total} = 0.15 * 3.6=0.54$$  
-For parallel:  
+
+For parallel    
 $$P_{avg}(N) = 0.20 * (3N+11) + 0.8 * 1$$  
 $$P_{avg}(N) = 0.6N+2.2$$  
 
