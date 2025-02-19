@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -22,8 +23,9 @@ func work(id int, wg *sync.WaitGroup) {
 	jobCnt := 0
 	var sum int64 = 0
 
+	x := int(math.Sqrt(PRIME_MAX))
 	// run through your batches and caclualate primes
-	for i := (BATCH_SIZE * id); i <= PRIME_MAX; i += (BATCH_SIZE * THREAD_CNT) {
+	for i := (BATCH_SIZE * id); i <= x; i += (BATCH_SIZE * THREAD_CNT) {
 		for j := 0; j <= BATCH_SIZE && j+i <= PRIME_MAX; j++ {
 			k := i + j
 
